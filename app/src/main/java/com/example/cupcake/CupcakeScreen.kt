@@ -35,6 +35,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.cupcake.data.DataSource.flavors
 import com.example.cupcake.data.DataSource.quantityOptions
@@ -55,12 +56,13 @@ enum class CupcakeScreen {
 
 @Composable
 fun CupcakeAppBar(
+    currentScreen: String,
     canNavigateBack: Boolean,
     navigateUp: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     TopAppBar(
-        title = { Text(stringResource(id = R.string.app_name)) },
+        title = { Text(currentScreen) },
         modifier = modifier,
         navigationIcon = {
             if (canNavigateBack) {
@@ -77,18 +79,19 @@ fun CupcakeAppBar(
 
 @Composable
 fun CupcakeApp(modifier: Modifier = Modifier, viewModel: OrderViewModel = viewModel()) {
-    // TODO: Create NavController
+
     val navController = rememberNavController()
 
-    // TODO: Get current back stack entry
-
-    // TODO: Get the name of the current screen
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentScreen = backStackEntry?.destination?.route ?: CupcakeScreen.Start.name
+    val canNavigateBack = navController.previousBackStackEntry != null
 
     Scaffold(
         topBar = {
             CupcakeAppBar(
-                canNavigateBack = false,
-                navigateUp = { /* TODO: implement back navigation */ }
+                currentScreen = currentScreen,
+                canNavigateBack = canNavigateBack,
+                navigateUp = { navController.navigateUp() }
             )
         }
     ) { innerPadding ->
@@ -146,7 +149,13 @@ fun CupcakeApp(modifier: Modifier = Modifier, viewModel: OrderViewModel = viewMo
                             navController
                         )
                     },
-                    onSendButtonClicked = { subject, summary -> shareOrder(context, subject, summary)}
+                    onSendButtonClicked = { subject, summary ->
+                        shareOrder(
+                            context,
+                            subject,
+                            summary
+                        )
+                    }
                 )
             }
         }
@@ -156,14 +165,16 @@ fun CupcakeApp(modifier: Modifier = Modifier, viewModel: OrderViewModel = viewMo
 private fun shareOrder(context: Context, subject: String, summary: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
-        putExtra (Intent.EXTRA_SUBJECT, subject)
-        putExtra (Intent.EXTRA_TEXT, summary)
+        putExtra(Intent.EXTRA_SUBJECT, subject)
+        putExtra(Intent.EXTRA_TEXT, summary)
     }
 
-    context.startActivity(Intent.createChooser(
-        intent,
-        context.getString(R.string.new_cupcake_order)
-    ))
+    context.startActivity(
+        Intent.createChooser(
+            intent,
+            context.getString(R.string.new_cupcake_order)
+        )
+    )
 }
 
 private fun cancelOrderAndNavigateToStart(
